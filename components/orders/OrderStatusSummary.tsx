@@ -78,24 +78,36 @@ export function OrderStatusSummary({
   activeFilter,
   onFilterChange,
 }: OrderStatusSummaryProps) {
+  const cards = STAGE_KEYS.map(({ key, label, countKey, dotColor }) => (
+    <SummaryCard
+      key={key}
+      label={label}
+      count={counts[countKey]}
+      dotColor={dotColor}
+      active={activeFilter === key}
+      onClick={() => onFilterChange(activeFilter === key ? "all" : key)}
+    />
+  ));
+
   return (
-    <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
-      {STAGE_KEYS.map(({ key, label, countKey, dotColor }) => (
-        <div
-          key={key}
-          className="min-w-[9.5rem] flex-1 snap-start sm:min-w-0"
-        >
-          <SummaryCard
-            label={label}
-            count={counts[countKey]}
-            dotColor={dotColor}
-            active={activeFilter === key}
-            onClick={() =>
-              onFilterChange(activeFilter === key ? "all" : key)
-            }
-          />
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory md:hidden">
+        {STAGE_KEYS.map(({ key, label, countKey, dotColor }) => (
+          <div key={key} className="min-w-[9.5rem] shrink-0 snap-start">
+            <SummaryCard
+              label={label}
+              count={counts[countKey]}
+              dotColor={dotColor}
+              active={activeFilter === key}
+              onClick={() =>
+                onFilterChange(activeFilter === key ? "all" : key)
+              }
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden gap-3 md:grid md:grid-cols-3">{cards}</div>
+    </>
   );
 }
