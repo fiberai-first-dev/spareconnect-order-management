@@ -13,7 +13,7 @@ function clone<T>(value: T): T {
 }
 
 export const users: User[] = clone(seedUsers as User[]);
-export let orders: Order[] = clone(seedOrders);
+export const orders: Order[] = clone(seedOrders);
 
 function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
