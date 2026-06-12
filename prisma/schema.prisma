@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id                 String               @id @default(cuid())
+  orderNo            String
+  orderDate          DateTime             @default(now())
+  quotationStatus    QuotationStatus      @default(PENDING)
+  confirmationStatus ConfirmationStatus   @default(PENDING)
+  deliveryStatus     SimpleDeliveryStatus @default(PENDING)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+enum QuotationStatus {
+  PENDING
+  COMPLETED
+}
+
+enum ConfirmationStatus {
+  PENDING
+  CONFIRMED
+}
+
+enum SimpleDeliveryStatus {
+  PENDING
+  COMPLETED
+}
