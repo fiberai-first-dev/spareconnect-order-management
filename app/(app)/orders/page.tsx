@@ -90,6 +90,10 @@ export default function OrdersPage() {
     }
   }
 
+  function handleOrderDelete(id: string) {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+  }
+
   const periodFilteredOrders = useMemo(
     () => orders.filter((order) => orderMatchesPeriodFilter(order, periodFilter)),
     [orders, periodFilter]
@@ -173,6 +177,7 @@ export default function OrdersPage() {
               key={order.id}
               order={order}
               onUpdate={handleOrderUpdate}
+              onDelete={handleOrderDelete}
             />
           ))}
         </div>
