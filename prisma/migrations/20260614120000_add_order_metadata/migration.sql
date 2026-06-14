@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "storeName" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "productCategory" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "resolutionDate" TEXT;

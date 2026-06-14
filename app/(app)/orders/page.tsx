@@ -1,44 +1,147 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { OrderCard } from "@/components/orders/OrderCard";
-import { OrderStatusFilterBar } from "@/components/orders/OrderStatusFilterBar";
-import { OrderStatusSummary } from "@/components/orders/OrderStatusSummary";
+import { motion } from "motion/react";
+import { OrderCard, type OrderCardStage } from "@/components/orders/OrderCard";
 import { readErrorMessage, readJsonResponse } from "@/lib/api-utils";
-import {
-  getOrderStageCounts,
-  orderMatchesPeriodFilter,
-  orderMatchesStageFilter,
-  sortOrdersByPriority,
-  type OrderPeriodFilter,
-  type OrderStageFilter,
-} from "@/lib/order-flow";
+import { VanishList, type NewOrderInput } from "@/components/orders/OrderManage";
+import { getOrderStage, sortOrdersByPriority } from "@/lib/order-flow";
+import { cn } from "@/lib/utils";
 import type { Order } from "@/types";
+
+type SectionVariant = OrderCardStage;
+
+const sectionThemes: Record<
+  SectionVariant,
+  {
+    icon: string;
+    gradient: string;
+    border: string;
+    accent: string;
+    badge: string;
+    glow: string;
+  }
+> = {
+  quotation: {
+    icon: "01",
+    gradient: "from-zinc-50 via-white/90 to-neutral-100/50",
+    border: "border-black/20",
+    accent: "from-zinc-700 to-black",
+    badge: "bg-zinc-100 text-zinc-800 ring-zinc-300",
+    glow: "shadow-[0_10px_40px_rgba(0,0,0,0.12)]",
+  },
+  confirmation: {
+    icon: "02",
+    gradient: "from-neutral-100/70 via-white/90 to-zinc-50/60",
+    border: "border-black/25",
+    accent: "from-neutral-600 to-zinc-900",
+    badge: "bg-neutral-100 text-neutral-800 ring-neutral-300",
+    glow: "shadow-[0_10px_40px_rgba(0,0,0,0.14)]",
+  },
+  delivery: {
+    icon: "03",
+    gradient: "from-stone-100/70 via-white/90 to-gray-50/60",
+    border: "border-black/30",
+    accent: "from-stone-700 to-black",
+    badge: "bg-stone-100 text-stone-800 ring-stone-300",
+    glow: "shadow-[0_10px_40px_rgba(0,0,0,0.16)]",
+  },
+};
+
+function OrderSection({
+  title,
+  description,
+  children,
+  count,
+  variant,
+  delay = 0,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  count: number;
+  variant: SectionVariant;
+  delay?: number;
+}) {
+  const theme = sectionThemes[variant];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay, ease: "easeOut" }}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border p-4 backdrop-blur-sm md:p-5",
+        theme.border,
+        theme.glow,
+        `bg-gradient-to-br ${theme.gradient}`
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r",
+          theme.accent
+        )}
+      />
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm text-white shadow-md",
+              theme.accent
+            )}
+          >
+            {theme.icon}
+          </span>
+          <div>
+            <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+            <p className="mt-0.5 text-sm text-zinc-500">{description}</p>
+          </div>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1",
+            theme.badge
+          )}
+        >
+          {count}
+        </span>
+      </div>
+      {children}
+    </motion.section>
+  );
+}
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [orderNo, setOrderNo] = useState("");
+  const [historyOrderNos, setHistoryOrderNos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [stageFilter, setStageFilter] = useState<OrderStageFilter>("all");
-  const [periodFilter, setPeriodFilter] =
-    useState<OrderPeriodFilter>("last7days");
 
   const loadOrders = useCallback(async () => {
     setError("");
     try {
-      const res = await fetch("/api/orders");
-      if (!res.ok) {
-        throw new Error(await readErrorMessage(res));
+      const [ordersRes, historyRes] = await Promise.all([
+        fetch("/api/orders"),
+        fetch("/api/history"),
+      ]);
+
+      if (!ordersRes.ok) {
+        throw new Error(await readErrorMessage(ordersRes));
       }
-      setOrders(await readJsonResponse<Order[]>(res));
+
+      setOrders(await readJsonResponse<Order[]>(ordersRes));
+
+      if (historyRes.ok) {
+        const history = await readJsonResponse<Order[]>(historyRes);
+        setHistoryOrderNos(history.map((order) => order.orderNo));
+      } else {
+        setHistoryOrderNos([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
       setOrders([]);
+      setHistoryOrderNos([]);
     } finally {
       setLoading(false);
     }
@@ -48,22 +151,18 @@ export default function OrdersPage() {
     loadOrders();
   }, [loadOrders]);
 
-  async function handleAddOrder(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleAddOrder(order: NewOrderInput) {
     setError("");
 
-    const value = orderNo.trim();
-    if (!value) {
-      setError("Enter an order number.");
-      return;
-    }
-
-    setSaving(true);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderNo: value }),
+        body: JSON.stringify({
+          orderNo: order.orderId,
+          productCategory: order.productCategory,
+          resolutionDate: order.resolutionDate,
+        }),
       });
 
       if (!res.ok) {
@@ -72,11 +171,9 @@ export default function OrdersPage() {
 
       const created = await readJsonResponse<Order>(res);
       setOrders((prev) => [created, ...prev]);
-      setOrderNo("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add order");
-    } finally {
-      setSaving(false);
+      throw err;
     }
   }
 
@@ -94,92 +191,161 @@ export default function OrdersPage() {
     setOrders((prev) => prev.filter((o) => o.id !== id));
   }
 
-  const periodFilteredOrders = useMemo(
-    () => orders.filter((order) => orderMatchesPeriodFilter(order, periodFilter)),
-    [orders, periodFilter]
+  const existingOrderNos = useMemo(
+    () => [...orders.map((order) => order.orderNo), ...historyOrderNos],
+    [orders, historyOrderNos]
   );
 
-  const stageCounts = useMemo(
-    () => getOrderStageCounts(periodFilteredOrders),
-    [periodFilteredOrders]
-  );
-
-  const visibleOrders = useMemo(
+  const quotationOrders = useMemo(
     () =>
       sortOrdersByPriority(
-        periodFilteredOrders.filter((order) =>
-          orderMatchesStageFilter(order, stageFilter)
-        ),
-        stageFilter
+        orders.filter((order) => getOrderStage(order) === "quotation"),
+        "quotation"
       ),
-    [periodFilteredOrders, stageFilter]
+    [orders]
+  );
+
+  const confirmationOrders = useMemo(
+    () =>
+      sortOrdersByPriority(
+        orders.filter((order) => getOrderStage(order) === "confirmation"),
+        "confirmation"
+      ),
+    [orders]
+  );
+
+  const deliveryOrders = useMemo(
+    () =>
+      sortOrdersByPriority(
+        orders.filter((order) => getOrderStage(order) === "delivery"),
+        "delivery"
+      ),
+    [orders]
   );
 
   return (
-    <div className="px-4 py-4 md:p-8">
-      <h1 className="mb-4 text-lg font-semibold text-gray-900 md:mb-6 md:text-xl">
-        Order status
-      </h1>
-
-      <div className="mb-4 md:mb-6">
-        <OrderStatusSummary
-          counts={stageCounts}
-          activeFilter={stageFilter}
-          onFilterChange={setStageFilter}
-        />
-      </div>
-
-      <div className="mb-4 md:mb-6">
-        <OrderStatusFilterBar
-          counts={stageCounts}
-          activeFilter={stageFilter}
-          onFilterChange={setStageFilter}
-          periodFilter={periodFilter}
-          onPeriodChange={setPeriodFilter}
-        />
-      </div>
-
-      <form
-        onSubmit={handleAddOrder}
-        className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end"
+    <div className="relative px-4 py-4 md:p-8">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-6"
       >
-        <div className="w-full space-y-2 sm:w-auto">
-          <Label htmlFor="orderNo">Order no. / serial no.</Label>
-          <Input
-            id="orderNo"
-            value={orderNo}
-            onChange={(e) => setOrderNo(e.target.value)}
-            placeholder="e.g. 11"
-            className="w-full sm:w-56"
-          />
-        </div>
-        <Button type="submit" disabled={saving} className="w-full sm:w-auto">
-          {saving ? "Adding..." : "Add order"}
-        </Button>
-      </form>
+        <h1 className="text-lg font-semibold tracking-tight text-zinc-900 md:text-xl">
+          Order status
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Track orders through quotation, confirmation, and delivery.
+        </p>
+      </motion.div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && (
+        <motion.p
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-4 rounded-lg border border-zinc-300 bg-zinc-100/90 px-3 py-2 text-sm text-zinc-800 backdrop-blur-sm"
+        >
+          {error}
+        </motion.p>
+      )}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading orders...</p>
-      ) : visibleOrders.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          {orders.length === 0
-            ? "No active orders. Add one above."
-            : periodFilteredOrders.length === 0
-              ? "No orders in this period."
-              : "No orders match this filter."}
-        </p>
-      ) : (
         <div className="space-y-4">
-          {visibleOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onUpdate={handleOrderUpdate}
-              onDelete={handleOrderDelete}
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-28 animate-pulse rounded-2xl border border-zinc-200/80 bg-zinc-100/60 backdrop-blur-sm"
             />
           ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <OrderSection
+            title="Add order"
+            description="Create a new order and complete quotation."
+            count={quotationOrders.length}
+            variant="quotation"
+            delay={0}
+          >
+            <div className="flex min-h-[120px] flex-col">
+              {quotationOrders.length > 0 ? (
+                <div className="space-y-2">
+                  {quotationOrders.map((order, index) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      stage="quotation"
+                      index={index}
+                      onUpdate={handleOrderUpdate}
+                      onDelete={handleOrderDelete}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No orders awaiting quotation.
+                </p>
+              )}
+              <VanishList
+                onAddOrder={handleAddOrder}
+                existingOrderNos={existingOrderNos}
+              />
+            </div>
+          </OrderSection>
+
+          <OrderSection
+            title="Awaiting confirmation"
+            description="Orders with quotation completed, waiting for confirmation."
+            count={confirmationOrders.length}
+            variant="confirmation"
+            delay={0.08}
+          >
+            {confirmationOrders.length > 0 ? (
+              <div className="space-y-2">
+                {confirmationOrders.map((order, index) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    stage="confirmation"
+                    index={index}
+                    onUpdate={handleOrderUpdate}
+                    onDelete={handleOrderDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No orders awaiting confirmation.
+              </p>
+            )}
+          </OrderSection>
+
+          <OrderSection
+            title="Delivery pending"
+            description="Confirmed orders waiting for delivery."
+            count={deliveryOrders.length}
+            variant="delivery"
+            delay={0.16}
+          >
+            {deliveryOrders.length > 0 ? (
+              <div className="space-y-2">
+                {deliveryOrders.map((order, index) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    stage="delivery"
+                    index={index}
+                    onUpdate={handleOrderUpdate}
+                    onDelete={handleOrderDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No orders pending delivery.
+              </p>
+            )}
+          </OrderSection>
         </div>
       )}
     </div>

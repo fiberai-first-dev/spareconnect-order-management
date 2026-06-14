@@ -9,7 +9,7 @@ const STAGE_KEYS: Array<{
 }> = [
   {
     key: "quotation",
-    label: "Quotation pending",
+    label: "Orders",
     countKey: "quotationPending",
     dotColor: "bg-[#E5A017]",
   },

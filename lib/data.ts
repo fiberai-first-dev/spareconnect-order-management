@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { applySequentialStatusUpdate } from "@/lib/order-flow";
 import { prisma } from "@/lib/prisma";
 import * as store from "@/lib/store";
@@ -15,6 +16,9 @@ export const useDB = !!process.env.DATABASE_URL;
 function mapOrder(order: {
   id: string;
   orderNo: string;
+  storeName?: string | null;
+  productCategory?: string | null;
+  resolutionDate?: string | null;
   orderDate: Date;
   quotationStatus: QuotationStatus;
   confirmationStatus: ConfirmationStatus;
@@ -25,6 +29,9 @@ function mapOrder(order: {
   return {
     id: order.id,
     orderNo: order.orderNo,
+    storeName: order.storeName ?? undefined,
+    productCategory: order.productCategory ?? undefined,
+    resolutionDate: order.resolutionDate ?? undefined,
     orderDate: order.orderDate.toISOString(),
     quotationStatus: order.quotationStatus,
     confirmationStatus: order.confirmationStatus,
@@ -86,12 +93,39 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return order ? mapOrder(order) : null;
 }
 
+async function orderNoExists(orderNo: string): Promise<boolean> {
+  const normalized = orderNo.trim();
+
+  if (!useDB) {
+    return store.orderNoExists(normalized);
+  }
+
+  const existing = await prisma.order.findFirst({
+    where: {
+      orderNo: {
+        equals: normalized,
+        mode: "insensitive",
+      },
+    },
+  });
+
+  return !!existing;
+}
+
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
+  if (await orderNoExists(input.orderNo)) {
+    throw new Error("An order with this ID already exists.");
+  }
+
   if (!useDB) return store.createOrder(input);
 
   try {
     const order = await prisma.order.create({
-      data: { orderNo: input.orderNo.trim() },
+      data: {
+        orderNo: input.orderNo.trim(),
+        productCategory: input.productCategory?.trim() || null,
+        resolutionDate: input.resolutionDate || null,
+      } as Prisma.OrderUncheckedCreateInput,
     });
     return mapOrder(order);
   } catch (err) {

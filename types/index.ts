@@ -12,6 +12,9 @@ export interface User {
 export interface Order {
   id: string;
   orderNo: string;
+  storeName?: string;
+  productCategory?: string;
+  resolutionDate?: string;
   orderDate: string;
   quotationStatus: QuotationStatus;
   confirmationStatus: ConfirmationStatus;
@@ -22,6 +25,9 @@ export interface Order {
 
 export interface CreateOrderInput {
   orderNo: string;
+  storeName?: string;
+  productCategory?: string;
+  resolutionDate?: string;
 }
 
 export type BadgeVariant = "orange" | "blue" | "amber" | "green" | "neutral";
