@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { readJsonResponse } from "@/lib/api-utils";
+import { readJsonResponse, readErrorMessage } from "@/lib/api-utils";
 import {
   applySequentialStatusUpdate,
   canAdvanceDelivery,
@@ -10,6 +10,15 @@ import {
 } from "@/lib/order-flow";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import type { Order } from "@/types";
 
 function formatDateTime(date: string) {
@@ -58,10 +67,13 @@ function TogglePill({ label, isDone, disabled, onClick }: TogglePillProps) {
 interface OrderCardProps {
   order: Order;
   onUpdate: (order: Order) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function OrderCard({ order, onUpdate }: OrderCardProps) {
+export function OrderCard({ order, onUpdate, onDelete }: OrderCardProps) {
   const [advancing, setAdvancing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const quotationDone = order.quotationStatus === "COMPLETED";
   const confirmationDone = order.confirmationStatus === "CONFIRMED";
   const deliveryDone = order.deliveryStatus === "COMPLETED";
@@ -94,8 +106,26 @@ export function OrderCard({ order, onUpdate }: OrderCardProps) {
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res));
+      }
+
+      if (onDelete) onDelete(order.id);
+      setConfirmOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete order");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <>
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h3 className="text-base font-bold text-gray-900 sm:text-sm">
@@ -106,18 +136,30 @@ export function OrderCard({ order, onUpdate }: OrderCardProps) {
           </p>
         </div>
 
-        {nextActionLabel && (
+        <div className="flex gap-2 items-center">
+          {nextActionLabel && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={advancing}
+              onClick={handleQuickAdvance}
+              className="w-full shrink-0 text-xs sm:w-auto"
+            >
+              {advancing ? "Updating..." : `→ ${nextActionLabel}`}
+            </Button>
+          )}
+
           <Button
             type="button"
-            variant="outline"
+            variant="destructive"
             size="sm"
-            disabled={advancing}
-            onClick={handleQuickAdvance}
-            className="w-full shrink-0 text-xs sm:w-auto"
+            onClick={() => setConfirmOpen(true)}
+            className="w-full shrink-0 text-xs sm:w-auto text-black bg-red-200 border-red-600 hover:bg-red-50 focus-visible:ring-red-500 "
           >
-            {advancing ? "Updating..." : `→ ${nextActionLabel}`}
+            Delete
           </Button>
-        )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -154,5 +196,26 @@ export function OrderCard({ order, onUpdate }: OrderCardProps) {
         />
       </div>
     </div>
+    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete order</DialogTitle>
+            <DialogDescription>
+              This action will permanently delete the order. Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline">Cancel</Button>} />
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
