@@ -71,7 +71,7 @@ function OrderSection({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: "easeOut" }}
       className={cn(
-        "relative overflow-hidden rounded-2xl border p-4 backdrop-blur-sm md:p-5",
+        "relative flex h-[320px] min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border p-4 backdrop-blur-sm md:h-[440px] md:p-5",
         theme.border,
         theme.glow,
         `bg-gradient-to-br ${theme.gradient}`
@@ -83,19 +83,23 @@ function OrderSection({
           theme.accent
         )}
       />
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
+      <div className="mb-4 flex shrink-0 items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm text-white shadow-md",
+              "flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs text-white shadow-md md:size-9 md:text-sm",
               theme.accent
             )}
           >
             {theme.icon}
           </span>
-          <div>
-            <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
-            <p className="mt-0.5 text-sm text-zinc-500">{description}</p>
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold text-zinc-900 md:text-base">
+              {title}
+            </h2>
+            <p className="mt-0.5 hidden text-sm text-zinc-500 md:block">
+              {description}
+            </p>
           </div>
         </div>
         <span
@@ -107,8 +111,44 @@ function OrderSection({
           {count}
         </span>
       </div>
-      {children}
+      <div className="min-h-0 flex-1">{children}</div>
     </motion.section>
+  );
+}
+
+/** Scrollable list fills remaining space inside each equal-height section */
+const columnListClass = "h-full min-h-0 w-full overflow-y-auto";
+
+function OrderListContent({
+  orders,
+  stage,
+  emptyMessage,
+  onUpdate,
+  onDelete,
+}: {
+  orders: Order[];
+  stage: OrderCardStage;
+  emptyMessage: string;
+  onUpdate: (order: Order) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (orders.length === 0) {
+    return <p className="text-sm text-gray-500">{emptyMessage}</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {orders.map((order, index) => (
+        <OrderCard
+          key={order.id}
+          order={order}
+          stage={stage}
+          index={index}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -251,103 +291,79 @@ export default function OrdersPage() {
       )}
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-28 animate-pulse rounded-2xl border border-zinc-200/80 bg-zinc-100/60 backdrop-blur-sm"
+              className="h-[320px] animate-pulse rounded-2xl border border-zinc-200/80 bg-zinc-100/60 backdrop-blur-sm md:h-[440px]"
             />
           ))}
         </div>
       ) : (
-        <div className="space-y-6">
-          <OrderSection
-            title="Add order"
-            description="Create a new order and complete quotation."
-            count={quotationOrders.length}
-            variant="quotation"
-            delay={0}
-          >
-            <div className="flex min-h-[120px] flex-col">
-              {quotationOrders.length > 0 ? (
-                <div className="space-y-2">
-                  {quotationOrders.map((order, index) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      stage="quotation"
-                      index={index}
-                      onUpdate={handleOrderUpdate}
-                      onDelete={handleOrderDelete}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  No orders awaiting quotation.
-                </p>
-              )}
-              <VanishList
-                onAddOrder={handleAddOrder}
-                existingOrderNos={existingOrderNos}
-              />
-            </div>
-          </OrderSection>
-
-          <OrderSection
-            title="Awaiting confirmation"
-            description="Orders with quotation completed, waiting for confirmation."
-            count={confirmationOrders.length}
-            variant="confirmation"
-            delay={0.08}
-          >
-            {confirmationOrders.length > 0 ? (
-              <div className="space-y-2">
-                {confirmationOrders.map((order, index) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    stage="confirmation"
-                    index={index}
-                    onUpdate={handleOrderUpdate}
-                    onDelete={handleOrderDelete}
-                  />
-                ))}
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
+            <OrderSection
+              title="Quotation Pending"
+              description="Create a new order and complete quotation."
+              count={quotationOrders.length}
+              variant="quotation"
+              delay={0}
+            >
+              <div className={columnListClass}>
+                <OrderListContent
+                  orders={quotationOrders}
+                  stage="quotation"
+                  emptyMessage="No orders awaiting quotation."
+                  onUpdate={handleOrderUpdate}
+                  onDelete={handleOrderDelete}
+                />
               </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                No orders awaiting confirmation.
-              </p>
-            )}
-          </OrderSection>
+            </OrderSection>
 
-          <OrderSection
-            title="Delivery pending"
-            description="Confirmed orders waiting for delivery."
-            count={deliveryOrders.length}
-            variant="delivery"
-            delay={0.16}
-          >
-            {deliveryOrders.length > 0 ? (
-              <div className="space-y-2">
-                {deliveryOrders.map((order, index) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    stage="delivery"
-                    index={index}
-                    onUpdate={handleOrderUpdate}
-                    onDelete={handleOrderDelete}
-                  />
-                ))}
+            <OrderSection
+              title="Awaiting confirmation"
+              description="Orders with quotation completed, waiting for confirmation."
+              count={confirmationOrders.length}
+              variant="confirmation"
+              delay={0.08}
+            >
+              <div className={columnListClass}>
+                <OrderListContent
+                  orders={confirmationOrders}
+                  stage="confirmation"
+                  emptyMessage="No orders awaiting confirmation."
+                  onUpdate={handleOrderUpdate}
+                  onDelete={handleOrderDelete}
+                />
               </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                No orders pending delivery.
-              </p>
-            )}
-          </OrderSection>
-        </div>
+            </OrderSection>
+
+            <OrderSection
+              title="Delivery pending"
+              description="Confirmed orders waiting for delivery."
+              count={deliveryOrders.length}
+              variant="delivery"
+              delay={0.16}
+            >
+              <div className={columnListClass}>
+                <OrderListContent
+                  orders={deliveryOrders}
+                  stage="delivery"
+                  emptyMessage="No orders pending delivery."
+                  onUpdate={handleOrderUpdate}
+                  onDelete={handleOrderDelete}
+                />
+              </div>
+            </OrderSection>
+          </div>
+
+          <div className="mt-8 flex justify-center md:mt-10">
+            <VanishList
+              onAddOrder={handleAddOrder}
+              existingOrderNos={existingOrderNos}
+            />
+          </div>
+        </>
       )}
     </div>
   );

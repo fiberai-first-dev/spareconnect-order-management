@@ -37,22 +37,19 @@ export type OrderCardStage = "quotation" | "confirmation" | "delivery";
 
 const stageStyles: Record<
   OrderCardStage,
-  { accent: string; hover: string; view: string }
+  { accent: string; hover: string }
 > = {
   quotation: {
     accent: "from-zinc-600 to-black",
     hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)]",
-    view: "text-zinc-600",
   },
   confirmation: {
     accent: "from-neutral-500 to-zinc-800",
     hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)]",
-    view: "text-neutral-600",
   },
   delivery: {
     accent: "from-stone-500 to-black",
     hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.22)]",
-    view: "text-stone-600",
   },
 };
 
@@ -193,7 +190,7 @@ export function OrderCard({
         whileTap={{ scale: 0.99 }}
         onClick={() => setDetailsOpen(true)}
         className={cn(
-          "group relative flex w-full items-center justify-between overflow-hidden rounded-xl border border-black/20 bg-white/90 px-3 py-2.5 text-left shadow-md shadow-black/10 backdrop-blur-sm transition-shadow",
+          "group relative flex w-full items-center overflow-hidden rounded-lg border border-black/20 bg-white/90 px-3 py-2 text-left shadow-md shadow-black/10 backdrop-blur-sm transition-shadow",
           theme.hover
         )}
       >
@@ -203,28 +200,9 @@ export function OrderCard({
             theme.accent
           )}
         />
-        <div className="min-w-0 pl-2">
-          <p className="truncate text-sm font-semibold text-gray-900">
-            {order.orderNo}
-          </p>
-          <p className="truncate text-xs text-gray-500">
-            {displayStoreName(order.storeName)}
-          </p>
-          <p className="truncate text-xs text-gray-400">
-            {displayProductCategory(order.productCategory)}
-          </p>
-          <p className="truncate text-xs text-gray-400">
-            Resolve by: {displayResolutionDate(order.resolutionDate)}
-          </p>
-        </div>
-        <span
-          className={cn(
-            "shrink-0 text-xs font-medium opacity-70 transition-opacity group-hover:opacity-100",
-            theme.view
-          )}
-        >
-          View →
-        </span>
+        <p className="min-w-0 truncate pl-2 text-sm font-semibold text-gray-900">
+          {order.orderNo}
+        </p>
       </motion.button>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

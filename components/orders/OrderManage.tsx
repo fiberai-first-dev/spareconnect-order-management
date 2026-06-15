@@ -1,11 +1,17 @@
 import { AnimatePresence, useAnimate, usePresence } from "motion/react";
 import React, { useEffect, useState } from "react";
-import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiTrash2 } from "react-icons/fi";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 
 export type OrderItem = {
   id: number;
@@ -53,7 +59,8 @@ const AddOrderForm = ({
   onAdd: (order: NewOrderInput) => Promise<void> | void;
   existingOrderNos: string[];
 }) => {
-  const [visible, setVisible] = useState(false);
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  const [desktopFormOpen, setDesktopFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -66,6 +73,12 @@ const AddOrderForm = ({
     setStoreName("");
     setProductCategory("");
     setResolutionDate("");
+    setFormError("");
+  };
+
+  const closeAll = () => {
+    setMobileDialogOpen(false);
+    setDesktopFormOpen(false);
     setFormError("");
   };
 
@@ -96,7 +109,7 @@ const AddOrderForm = ({
         resolutionDate,
       });
       resetForm();
-      setVisible(false);
+      closeAll();
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : "Failed to add order."
@@ -106,98 +119,127 @@ const AddOrderForm = ({
     }
   };
 
+  const formFields = (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="orderId">Order ID</Label>
+        <Input
+          id="orderId"
+          value={orderId}
+          onChange={(e) => {
+            setOrderId(e.target.value);
+            if (formError) setFormError("");
+          }}
+          placeholder="Enter order ID"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="storeName">Store name (optional)</Label>
+        <Input
+          id="storeName"
+          value={storeName}
+          onChange={(e) => setStoreName(e.target.value)}
+          placeholder="Enter store name"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="productCategory">Product category (optional)</Label>
+        <Input
+          id="productCategory"
+          value={productCategory}
+          onChange={(e) => setProductCategory(e.target.value)}
+          placeholder="Enter product category"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="resolutionDate">Resolution date</Label>
+        <Input
+          id="resolutionDate"
+          type="date"
+          value={resolutionDate}
+          onChange={(e) => setResolutionDate(e.target.value)}
+          required
+        />
+      </div>
+
+      {formError && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+          {formError}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={saving}>
+          {saving ? "Adding..." : "Add order"}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="mt-auto w-full pt-4">
-      <AnimatePresence>
-        {visible && (
-          <motion.form
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-            className="mb-3 w-full space-y-3 rounded-xl border border-black/20 bg-white/95 p-4 shadow-lg shadow-black/10 backdrop-blur-md"
-          >
-              <div className="space-y-2">
-                <Label htmlFor="orderId">Order ID</Label>
-                <Input
-                  id="orderId"
-                  value={orderId}
-                  onChange={(e) => {
-                    setOrderId(e.target.value);
-                    if (formError) setFormError("");
-                  }}
-                  placeholder="Enter order ID"
-                  required
-                />
-            </div>
+    <div className="flex flex-col items-center">
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileDialogOpen(true)}
+          className="rounded-lg border border-black/20 bg-white px-5 py-2 text-sm font-semibold text-zinc-900 shadow-sm shadow-black/10 transition-all hover:border-black/40 hover:shadow-md hover:shadow-black/15"
+        >
+          Add order
+        </button>
 
-            <div className="space-y-2">
-              <Label htmlFor="storeName">Store name (optional)</Label>
-              <Input
-                id="storeName"
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                placeholder="Enter store name"
-              />
-            </div>
+        <Dialog open={mobileDialogOpen} onOpenChange={setMobileDialogOpen}>
+          <DialogContent className="max-w-md border border-black/20 bg-white/95 shadow-xl shadow-black/15 backdrop-blur-xl">
+            <DialogHeader>
+              <DialogTitle>Add order</DialogTitle>
+              <DialogDescription>
+                Enter order details to create a new order.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
+            >
+              {formFields}
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="productCategory">Product category (optional)</Label>
-                <Input
-                  id="productCategory"
-                  value={productCategory}
-                  onChange={(e) => setProductCategory(e.target.value)}
-                  placeholder="Enter product category"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="resolutionDate">Resolution date</Label>
-                <Input
-                  id="resolutionDate"
-                  type="date"
-                  value={resolutionDate}
-                  onChange={(e) => setResolutionDate(e.target.value)}
-                  required
-                />
-              </div>
-
-              {formError && (
-                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
-                  {formError}
-                </p>
-              )}
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Adding..." : "Add order"}
-                </Button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
-
-      <div className="relative flex justify-center">
-        <span className="absolute inset-0 m-auto size-12 animate-pulse-soft rounded-full bg-zinc-300/30" />
+      <div className="hidden md:flex md:flex-col md:items-center md:justify-center">
         <button
           type="button"
           onClick={() => {
-            setVisible((prev) => !prev);
-            if (visible) setFormError("");
+            setDesktopFormOpen((prev) => !prev);
+            if (desktopFormOpen) setFormError("");
           }}
-          className={cn(
-            "relative flex h-9 w-9 items-center justify-center rounded-full border border-zinc-300 bg-gradient-to-br from-zinc-800 to-black text-white shadow-md shadow-black/20 transition-all hover:scale-110 hover:shadow-lg hover:shadow-black/30",
-            !visible && "animate-float"
-          )}
-          aria-label={visible ? "Close add order form" : "Add order"}
+          className="rounded-lg border border-black/20 bg-white px-5 py-2 text-sm font-semibold text-zinc-900 shadow-sm shadow-black/10 transition-all hover:border-black/400 hover:shadow-lg hover:shadow-black/15"
         >
-          <FiPlus
-            className={`size-4 transition-transform ${visible ? "rotate-45" : "rotate-0"}`}
-          />
+          Add order
         </button>
+
+        <AnimatePresence>
+          {desktopFormOpen && (
+            <motion.form
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
+              className="mt-3 w-full min-w-[18rem] max-w-md space-y-3 rounded-xl border border-black/20 bg-white/95 p-4 shadow-lg shadow-black/10 backdrop-blur-md"
+            >
+              {formFields}
+            </motion.form>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
