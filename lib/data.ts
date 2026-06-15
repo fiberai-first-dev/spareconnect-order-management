@@ -123,8 +123,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const order = await prisma.order.create({
       data: {
         orderNo: input.orderNo.trim(),
+        storeName: input.storeName?.trim() || null,
         productCategory: input.productCategory?.trim() || null,
-        resolutionDate: input.resolutionDate || null,
+        resolutionDate: input.resolutionDate?.trim() || null,
       } as Prisma.OrderUncheckedCreateInput,
     });
     return mapOrder(order);

@@ -68,8 +68,9 @@ export function createOrder(input: CreateOrderInput): Order {
   const order: Order = {
     id: generateId("order"),
     orderNo: input.orderNo.trim(),
+    storeName: input.storeName?.trim() || undefined,
     productCategory: input.productCategory?.trim() || undefined,
-    resolutionDate: input.resolutionDate || undefined,
+    resolutionDate: input.resolutionDate?.trim() || undefined,
     orderDate: timestamp,
     quotationStatus: "PENDING",
     confirmationStatus: "PENDING",

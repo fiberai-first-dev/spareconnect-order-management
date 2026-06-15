@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export type OrderItem = {
   id: number;
   orderId: string;
+  storeName?: string;
   productCategory?: string;
   resolutionDate: string;
 };
@@ -56,11 +57,13 @@ const AddOrderForm = ({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [storeName, setStoreName] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [resolutionDate, setResolutionDate] = useState("");
 
   const resetForm = () => {
     setOrderId("");
+    setStoreName("");
     setProductCategory("");
     setResolutionDate("");
     setFormError("");
@@ -88,6 +91,7 @@ const AddOrderForm = ({
     try {
       await onAdd({
         orderId: trimmedOrderId,
+        storeName: storeName.trim() || undefined,
         productCategory: productCategory.trim() || undefined,
         resolutionDate,
       });
@@ -128,6 +132,16 @@ const AddOrderForm = ({
                   placeholder="Enter order ID"
                   required
                 />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="storeName">Store name (optional)</Label>
+              <Input
+                id="storeName"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="Enter store name"
+              />
             </div>
 
             <div className="space-y-2">
@@ -222,7 +236,7 @@ const OrderRow = ({
   removeElement: (id: number) => void;
   order: OrderItem;
 }) => {
-  const { id, orderId, productCategory, resolutionDate } = order;
+  const { id, orderId, storeName, productCategory, resolutionDate } = order;
   const [isPresent, safeToRemove] = usePresence();
   const [scope, animate] = useAnimate();
 
@@ -254,6 +268,9 @@ const OrderRow = ({
     >
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium text-gray-900">Order ID: {orderId}</p>
+        {storeName && (
+          <p className="text-xs text-gray-600">Store: {storeName}</p>
+        )}
         {productCategory && (
           <p className="text-xs text-gray-600">Category: {productCategory}</p>
         )}

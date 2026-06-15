@@ -4,6 +4,9 @@ export const seedOrders: Order[] = [
   {
     id: "order_1",
     orderNo: "ORD-240601",
+    storeName: "City Spares",
+    productCategory: "Engine parts",
+    resolutionDate: "2024-06-10",
     orderDate: new Date("2024-06-01").toISOString(),
     quotationStatus: "COMPLETED",
     confirmationStatus: "PENDING",
@@ -14,6 +17,9 @@ export const seedOrders: Order[] = [
   {
     id: "order_2",
     orderNo: "ORD-240605",
+    storeName: "Metro Auto",
+    productCategory: "Brake systems",
+    resolutionDate: "2024-06-12",
     orderDate: new Date("2024-06-05").toISOString(),
     quotationStatus: "COMPLETED",
     confirmationStatus: "CONFIRMED",
@@ -24,6 +30,9 @@ export const seedOrders: Order[] = [
   {
     id: "order_3",
     orderNo: "ORD-240515",
+    storeName: "Highway Motors",
+    productCategory: "Filters",
+    resolutionDate: "2024-05-20",
     orderDate: new Date("2024-05-15").toISOString(),
     quotationStatus: "COMPLETED",
     confirmationStatus: "CONFIRMED",

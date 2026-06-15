@@ -160,6 +160,7 @@ export default function OrdersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderNo: order.orderId,
+          storeName: order.storeName,
           productCategory: order.productCategory,
           resolutionDate: order.resolutionDate,
         }),

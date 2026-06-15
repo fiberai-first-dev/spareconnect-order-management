@@ -22,7 +22,16 @@ import {
 } from "@/components/ui/dialog";
 import type { Order } from "@/types";
 
-const DUMMY_STORE_NAME = "Store TBD";
+const FALLBACK_STORE_NAME = "Store TBD";
+const FALLBACK_PRODUCT_CATEGORY = "Category TBD";
+
+function displayStoreName(storeName?: string) {
+  return storeName?.trim() || FALLBACK_STORE_NAME;
+}
+
+function displayProductCategory(productCategory?: string) {
+  return productCategory?.trim() || FALLBACK_PRODUCT_CATEGORY;
+}
 
 export type OrderCardStage = "quotation" | "confirmation" | "delivery";
 
@@ -63,6 +72,11 @@ function formatDate(date: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function displayResolutionDate(resolutionDate?: string) {
+  if (!resolutionDate?.trim()) return "Date TBD";
+  return formatDate(resolutionDate);
 }
 
 interface TogglePillProps {
@@ -193,7 +207,15 @@ export function OrderCard({
           <p className="truncate text-sm font-semibold text-gray-900">
             {order.orderNo}
           </p>
-          <p className="truncate text-xs text-gray-500">{DUMMY_STORE_NAME}</p>
+          <p className="truncate text-xs text-gray-500">
+            {displayStoreName(order.storeName)}
+          </p>
+          <p className="truncate text-xs text-gray-400">
+            {displayProductCategory(order.productCategory)}
+          </p>
+          <p className="truncate text-xs text-gray-400">
+            Resolve by: {displayResolutionDate(order.resolutionDate)}
+          </p>
         </div>
         <span
           className={cn(
@@ -221,24 +243,22 @@ export function OrderCard({
             </div>
             <div>
               <dt className="text-gray-500">Store name</dt>
-              <dd className="font-medium text-gray-900">{DUMMY_STORE_NAME}</dd>
+              <dd className="font-medium text-gray-900">
+                {displayStoreName(order.storeName)}
+              </dd>
             </div>
-            {order.productCategory && (
-              <div>
-                <dt className="text-gray-500">Product category</dt>
-                <dd className="font-medium text-gray-900">
-                  {order.productCategory}
-                </dd>
-              </div>
-            )}
-            {order.resolutionDate && (
-              <div>
-                <dt className="text-gray-500">Resolution date</dt>
-                <dd className="font-medium text-gray-900">
-                  {formatDate(order.resolutionDate)}
-                </dd>
-              </div>
-            )}
+            <div>
+              <dt className="text-gray-500">Product category</dt>
+              <dd className="font-medium text-gray-900">
+                {displayProductCategory(order.productCategory)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Resolution date</dt>
+              <dd className="font-medium text-gray-900">
+                {displayResolutionDate(order.resolutionDate)}
+              </dd>
+            </div>
             <div>
               <dt className="text-gray-500">Entered on</dt>
               <dd className="font-medium text-gray-900">
