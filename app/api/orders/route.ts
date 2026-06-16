@@ -38,18 +38,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const order = await createOrder({ orderNo: body.orderNo.trim() });
+    if (!body.resolutionDate?.trim()) {
+      return NextResponse.json(
+        { error: "Resolution date is required" },
+        { status: 400 }
+      );
+    }
+
+    const order = await createOrder({
+      orderNo: body.orderNo.trim(),
+      storeName: body.storeName?.trim() || undefined,
+      productCategory: body.productCategory?.trim() || undefined,
+      resolutionDate: body.resolutionDate.trim(),
+    });
     return NextResponse.json(order, { status: 201 });
   } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Failed to create order. Check database schema.";
+
+    if (message.includes("already exists")) {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+
     console.error("POST /api/orders failed:", err);
-    return NextResponse.json(
-      {
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to create order. Check database schema.",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

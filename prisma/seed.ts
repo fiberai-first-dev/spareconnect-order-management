@@ -18,6 +18,9 @@ async function main() {
     data: [
       {
         orderNo: "ORD-240601",
+        storeName: "City Spares",
+        productCategory: "Engine parts",
+        resolutionDate: "2024-06-10",
         orderDate: new Date("2024-06-01"),
         quotationStatus: "COMPLETED",
         confirmationStatus: "PENDING",
@@ -25,6 +28,9 @@ async function main() {
       },
       {
         orderNo: "ORD-240605",
+        storeName: "Metro Auto",
+        productCategory: "Brake systems",
+        resolutionDate: "2024-06-12",
         orderDate: new Date("2024-06-05"),
         quotationStatus: "COMPLETED",
         confirmationStatus: "CONFIRMED",
@@ -32,6 +38,9 @@ async function main() {
       },
       {
         orderNo: "ORD-240515",
+        storeName: "Highway Motors",
+        productCategory: "Filters",
+        resolutionDate: "2024-05-20",
         orderDate: new Date("2024-05-15"),
         quotationStatus: "COMPLETED",
         confirmationStatus: "CONFIRMED",

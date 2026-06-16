@@ -20,11 +20,11 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen flex-col">
       {isDemoMode && <DemoBanner />}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex flex-1 items-stretch">
         <Sidebar />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader />
-          <main className="min-h-0 flex-1 overflow-auto bg-white pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+          <main className="orders-page-bg flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-0">
             {children}
           </main>
           <MobileNav />

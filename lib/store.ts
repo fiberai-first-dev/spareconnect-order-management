@@ -52,11 +52,25 @@ export function getOrderById(id: string): Order | undefined {
   return order ? clone(order) : undefined;
 }
 
+export function orderNoExists(orderNo: string): boolean {
+  const normalized = orderNo.trim().toLowerCase();
+  return orders.some(
+    (order) => order.orderNo.trim().toLowerCase() === normalized
+  );
+}
+
 export function createOrder(input: CreateOrderInput): Order {
+  if (orderNoExists(input.orderNo)) {
+    throw new Error("An order with this ID already exists.");
+  }
+
   const timestamp = now();
   const order: Order = {
     id: generateId("order"),
     orderNo: input.orderNo.trim(),
+    storeName: input.storeName?.trim() || undefined,
+    productCategory: input.productCategory?.trim() || undefined,
+    resolutionDate: input.resolutionDate?.trim() || undefined,
     orderDate: timestamp,
     quotationStatus: "PENDING",
     confirmationStatus: "PENDING",

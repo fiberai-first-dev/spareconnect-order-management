@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "motion/react";
 import { readJsonResponse, readErrorMessage } from "@/lib/api-utils";
 import {
   applySequentialStatusUpdate,
@@ -21,6 +22,37 @@ import {
 } from "@/components/ui/dialog";
 import type { Order } from "@/types";
 
+const FALLBACK_STORE_NAME = "Store TBD";
+const FALLBACK_PRODUCT_CATEGORY = "Category TBD";
+
+function displayStoreName(storeName?: string) {
+  return storeName?.trim() || FALLBACK_STORE_NAME;
+}
+
+function displayProductCategory(productCategory?: string) {
+  return productCategory?.trim() || FALLBACK_PRODUCT_CATEGORY;
+}
+
+export type OrderCardStage = "quotation" | "confirmation" | "delivery";
+
+const stageStyles: Record<
+  OrderCardStage,
+  { accent: string; hover: string }
+> = {
+  quotation: {
+    accent: "from-zinc-600 to-black",
+    hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)]",
+  },
+  confirmation: {
+    accent: "from-neutral-500 to-zinc-800",
+    hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)]",
+  },
+  delivery: {
+    accent: "from-stone-500 to-black",
+    hover: "hover:border-black/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.22)]",
+  },
+};
+
 function formatDateTime(date: string) {
   return new Date(date).toLocaleString("en-IN", {
     day: "numeric",
@@ -29,6 +61,19 @@ function formatDateTime(date: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function displayResolutionDate(resolutionDate?: string) {
+  if (!resolutionDate?.trim()) return "Date TBD";
+  return formatDate(resolutionDate);
 }
 
 interface TogglePillProps {
@@ -44,19 +89,17 @@ function TogglePill({ label, isDone, disabled, onClick }: TogglePillProps) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={
-        disabled ? "Complete the previous step first" : undefined
-      }
+      title={disabled ? "Complete the previous step first" : undefined}
       className={cn(
         "rounded-full border px-3 py-2 text-xs font-medium transition-colors touch-manipulation sm:px-2.5 sm:py-1",
         disabled &&
           "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400",
         !disabled &&
           isDone &&
-          "border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11] hover:bg-[#dff0d0]",
+          "border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800",
         !disabled &&
           !isDone &&
-          "border-[#854F0B] bg-[#FAEEDA] text-[#854F0B] hover:bg-[#f5e4c8]"
+          "border-zinc-300 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100"
       )}
     >
       {label}
@@ -66,13 +109,22 @@ function TogglePill({ label, isDone, disabled, onClick }: TogglePillProps) {
 
 interface OrderCardProps {
   order: Order;
+  stage?: OrderCardStage;
+  index?: number;
   onUpdate: (order: Order) => void;
   onDelete?: (id: string) => void;
 }
 
-export function OrderCard({ order, onUpdate, onDelete }: OrderCardProps) {
+export function OrderCard({
+  order,
+  stage = "quotation",
+  index = 0,
+  onUpdate,
+  onDelete,
+}: OrderCardProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [advancing, setAdvancing] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const quotationDone = order.quotationStatus === "COMPLETED";
   const confirmationDone = order.confirmationStatus === "CONFIRMED";
@@ -115,7 +167,8 @@ export function OrderCard({ order, onUpdate, onDelete }: OrderCardProps) {
       }
 
       if (onDelete) onDelete(order.id);
-      setConfirmOpen(false);
+      setDeleteOpen(false);
+      setDetailsOpen(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete order");
     } finally {
@@ -123,81 +176,137 @@ export function OrderCard({ order, onUpdate, onDelete }: OrderCardProps) {
     }
   }
 
+  const theme = stageStyles[stage];
+
   return (
     <>
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="text-base font-bold text-gray-900 sm:text-sm">
-            {order.orderNo}
-          </h3>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Entered {formatDateTime(order.orderDate)}
-          </p>
-        </div>
+      <motion.button
+        type="button"
+        layout
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.35, delay: index * 0.05 }}
+        whileHover={{ scale: 1.01, y: -1 }}
+        whileTap={{ scale: 0.99 }}
+        onClick={() => setDetailsOpen(true)}
+        className={cn(
+          "group relative flex w-full items-center overflow-hidden rounded-lg border border-black/20 bg-white/90 px-3 py-2 text-left shadow-md shadow-black/10 backdrop-blur-sm transition-shadow",
+          theme.hover
+        )}
+      >
+        <span
+          className={cn(
+            "absolute inset-y-0 left-0 w-1 bg-gradient-to-b",
+            theme.accent
+          )}
+        />
+        <p className="min-w-0 truncate pl-2 text-sm font-semibold text-gray-900">
+          {order.orderNo}
+        </p>
+      </motion.button>
 
-        <div className="flex gap-2 items-center">
-          {nextActionLabel && (
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-md border border-black/20 bg-white/95 shadow-xl shadow-black/15 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle>Order details</DialogTitle>
+            <DialogDescription>
+              View and update this order&apos;s status.
+            </DialogDescription>
+          </DialogHeader>
+
+          <dl className="space-y-3 text-sm">
+            <div>
+              <dt className="text-gray-500">Order ID</dt>
+              <dd className="font-medium text-gray-900">{order.orderNo}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Store name</dt>
+              <dd className="font-medium text-gray-900">
+                {displayStoreName(order.storeName)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Product category</dt>
+              <dd className="font-medium text-gray-900">
+                {displayProductCategory(order.productCategory)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Resolution date</dt>
+              <dd className="font-medium text-gray-900">
+                {displayResolutionDate(order.resolutionDate)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Entered on</dt>
+              <dd className="font-medium text-gray-900">
+                {formatDateTime(order.orderDate)}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <TogglePill
+              label={quotationDone ? "Quotation completed" : "Quotation pending"}
+              isDone={quotationDone}
+              onClick={() =>
+                patch({
+                  quotationStatus: quotationDone ? "PENDING" : "COMPLETED",
+                })
+              }
+            />
+            <TogglePill
+              label={
+                confirmationDone ? "Order confirmed" : "Awaiting confirmation"
+              }
+              isDone={confirmationDone}
+              disabled={!quotationDone && !confirmationDone}
+              onClick={() =>
+                patch({
+                  confirmationStatus: confirmationDone ? "PENDING" : "CONFIRMED",
+                })
+              }
+            />
+            <TogglePill
+              label={deliveryDone ? "Delivery completed" : "Delivery pending"}
+              isDone={deliveryDone}
+              disabled={!canAdvanceDelivery(order) && !deliveryDone}
+              onClick={() =>
+                patch({
+                  deliveryStatus: deliveryDone ? "PENDING" : "COMPLETED",
+                })
+              }
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between">
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               size="sm"
-              disabled={advancing}
-              onClick={handleQuickAdvance}
-              className="w-full shrink-0 text-xs sm:w-auto"
+              onClick={() => setDeleteOpen(true)}
+              className="border border-red-600 bg-red-600 text-white shadow-sm shadow-red-500/25 hover:border-red-700 hover:bg-red-700"
             >
-              {advancing ? "Updating..." : `→ ${nextActionLabel}`}
+              Delete
             </Button>
-          )}
+            <div className="flex gap-2">
+              <DialogClose render={<Button variant="outline">Close</Button>} />
+              {nextActionLabel && (
+                <Button
+                  type="button"
+                  disabled={advancing}
+                  onClick={handleQuickAdvance}
+                >
+                  {advancing ? "Updating..." : nextActionLabel}
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => setConfirmOpen(true)}
-            className="w-full shrink-0 text-xs sm:w-auto text-black bg-red-200 border-red-600 hover:bg-red-50 focus-visible:ring-red-500 "
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <TogglePill
-          label={quotationDone ? "Quotation completed" : "Quotation pending"}
-          isDone={quotationDone}
-          onClick={() =>
-            patch({
-              quotationStatus: quotationDone ? "PENDING" : "COMPLETED",
-            })
-          }
-        />
-        <TogglePill
-          label={
-            confirmationDone ? "Order confirmed" : "Awaiting confirmation"
-          }
-          isDone={confirmationDone}
-          disabled={!quotationDone && !confirmationDone}
-          onClick={() =>
-            patch({
-              confirmationStatus: confirmationDone ? "PENDING" : "CONFIRMED",
-            })
-          }
-        />
-        <TogglePill
-          label={deliveryDone ? "Delivery completed" : "Delivery pending"}
-          isDone={deliveryDone}
-          disabled={!canAdvanceDelivery(order) && !deliveryDone}
-          onClick={() =>
-            patch({
-              deliveryStatus: deliveryDone ? "PENDING" : "COMPLETED",
-            })
-          }
-        />
-      </div>
-    </div>
-    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="border border-black/20 shadow-xl shadow-black/15">
           <DialogHeader>
             <DialogTitle>Delete order</DialogTitle>
             <DialogDescription>
@@ -210,6 +319,7 @@ export function OrderCard({ order, onUpdate, onDelete }: OrderCardProps) {
               variant="destructive"
               onClick={handleDelete}
               disabled={deleting}
+              className="border border-red-600 bg-red-600 text-white shadow-sm shadow-red-500/25 hover:border-red-700 hover:bg-red-700"
             >
               {deleting ? "Deleting..." : "Delete"}
             </Button>

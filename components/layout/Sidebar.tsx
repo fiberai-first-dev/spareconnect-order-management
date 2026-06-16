@@ -20,7 +20,7 @@ export function Sidebar() {
   const initials = (session?.user?.name ?? "U").slice(0, 2).toUpperCase();
 
   return (
-    <aside className="hidden h-screen w-[172px] shrink-0 flex-col border-r border-gray-200 bg-gray-50 md:flex">
+    <aside className="hidden w-[172px] shrink-0 flex-col self-stretch border-r border-gray-200 bg-gray-50 md:flex">
       <div className="px-4 py-5">
         <div className="flex items-start justify-between gap-2">
           <div className="text-sm font-semibold leading-tight text-gray-900">
