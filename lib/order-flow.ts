@@ -119,11 +119,8 @@ function getStagePriority(order: Order): number {
   return 1;
 }
 
-function getStageWaitStart(order: Order): number {
-  if (getOrderStage(order) === "quotation") {
-    return new Date(order.orderDate).getTime();
-  }
-  return new Date(order.updatedAt).getTime();
+function getEntryDate(order: Order): number {
+  return new Date(order.orderDate).getTime();
 }
 
 export function sortOrdersByPriority(
@@ -135,7 +132,7 @@ export function sortOrdersByPriority(
       const stageDiff = getStagePriority(b) - getStagePriority(a);
       if (stageDiff !== 0) return stageDiff;
     }
-    return getStageWaitStart(a) - getStageWaitStart(b);
+    return getEntryDate(a) - getEntryDate(b);
   });
 }
 
@@ -157,6 +154,34 @@ export function getNextStatusActionLabel(order: Order): string | null {
   if (order.confirmationStatus === "PENDING") return "Confirm order";
   if (order.deliveryStatus === "PENDING") return "Mark delivered";
   return null;
+}
+
+export function getNextStatusCardActionLabel(order: Order): string | null {
+  if (order.quotationStatus === "PENDING") return "Mark quoted →";
+  if (order.confirmationStatus === "PENDING") return "Confirm order →";
+  if (order.deliveryStatus === "PENDING") return "Mark delivered →";
+  return null;
+}
+
+export function getDaysSinceAdded(order: Order, now: Date = new Date()): number {
+  const added = startOfDay(new Date(order.orderDate));
+  const today = startOfDay(now);
+  return Math.floor((today.getTime() - added.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+export function formatDaysAgoLabel(order: Order, now: Date = new Date()): string {
+  const days = getDaysSinceAdded(order, now);
+  return `${days}d`;
+}
+
+export type AgeBadgeTone = "fresh" | "aging" | "stale" | "urgent";
+
+export function getAgeBadgeTone(order: Order, now: Date = new Date()): AgeBadgeTone {
+  const days = getDaysSinceAdded(order, now);
+  if (days >= 7) return "urgent";
+  if (days >= 3) return "stale";
+  if (days >= 1) return "aging";
+  return "fresh";
 }
 
 export const STAGE_FILTER_LABELS: Record<

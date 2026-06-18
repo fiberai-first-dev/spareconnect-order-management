@@ -38,18 +38,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!body.resolutionDate?.trim()) {
-      return NextResponse.json(
-        { error: "Resolution date is required" },
-        { status: 400 }
-      );
-    }
-
     const order = await createOrder({
       orderNo: body.orderNo.trim(),
       storeName: body.storeName?.trim() || undefined,
       productCategory: body.productCategory?.trim() || undefined,
-      resolutionDate: body.resolutionDate.trim(),
+      resolutionDate: body.resolutionDate?.trim() || undefined,
     });
     return NextResponse.json(order, { status: 201 });
   } catch (err) {

@@ -2,12 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { appNavItems } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { href: "/orders", label: "Order status" },
-  { href: "/history", label: "Order history" },
-];
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -18,7 +14,7 @@ export function MobileNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex">
-        {navItems.map((item) => {
+        {appNavItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
 
